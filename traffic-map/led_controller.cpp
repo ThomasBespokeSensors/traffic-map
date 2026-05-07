@@ -81,11 +81,11 @@ void ledStartupSequence() {
     }
     
     telnetPrintln("LED mapping:");
-    telnetPrintln("  Route 1 (A14 Eastbound)      -> NeoPixels 1-3   (indices 0-2)");
-    telnetPrintln("  Route 2 (A14 Kettering)      -> NeoPixels 4-6   (indices 3-5)");
-    telnetPrintln("  Route 3 (A14 Westbound)      -> NeoPixels 7-9   (indices 6-8)");
-    telnetPrintln("  Route 4 (A43)                -> NeoPixels 10-12 (indices 9-11)");
-    telnetPrintln("  Route 5 (A45)                -> NeoPixels 13-15 (indices 12-14)");
+    telnetPrintln("  Route 1 (A14 Westbound)      -> NeoPixels 1-3   (indices 0-2)");
+    telnetPrintln("  Route 2 (A43)                -> NeoPixels 4-6   (indices 3-5)");
+    telnetPrintln("  Route 3 (A14 Kettering)      -> NeoPixels 7-9   (indices 6-8)");
+    telnetPrintln("  Route 4 (A45)                -> NeoPixels 10-12 (indices 9-11)");
+    telnetPrintln("  Route 5 (A14 Eastbound)      -> NeoPixels 13-15 (indices 12-14)");
 }
 
 void ledShowOTAProgress(unsigned int progress) {

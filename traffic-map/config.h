@@ -61,30 +61,8 @@ enum TrafficLevel {
 inline std::vector<RouteConfig> createRoutes() {
     std::vector<RouteConfig> routes;
     
-    // Route 1: A14 Eastbound (to Twywell junction)
+    // Route 1: A14 Westbound (to Market Harborough)
     // LEDs 0-2 (NeoPixels 1-3)
-    routes.push_back({
-        "Route 1: A14 Eastbound (to Twywell)",
-        {52.375899, -0.682826},
-        {52.3837205, -0.6239144},
-        {},  // no intermediates
-        4 * 60,   // Normal < 4 minutes
-        6 * 60    // Heavy > 6 minutes
-    });
-
-    // Route 2: A14 Kettering (to A43)
-    // LEDs 3-5 (NeoPixels 4-6)
-    routes.push_back({
-        "Route 2: A14 Kettering (to A43)",
-        {52.374605, -0.684420},
-        {52.389625, -0.748810},
-        {},
-        4 * 60,
-        6 * 60
-    });
-
-    // Route 3: A14 Westbound (to Market Harborough)
-    // LEDs 6-8 (NeoPixels 7-9)
     routes.push_back({
         "Route 3: A14 Westbound (to Market Harborough)",
         {52.390410, -0.749658},
@@ -94,8 +72,8 @@ inline std::vector<RouteConfig> createRoutes() {
         8 * 60
     });
 
-    // Route 4: A43
-    // LEDs 9-11 (NeoPixels 10-12)
+    // Route 2: A43
+    // LEDs 3-5 (NeoPixels 4-6)
     routes.push_back({
         "Route 4: A43",
         {52.389625, -0.748810},
@@ -105,8 +83,19 @@ inline std::vector<RouteConfig> createRoutes() {
         35 * 60
     });
 
+    // Route 2: A14 Kettering (to A43)
+    // LEDs 6-8 (NeoPixels 7-9)
+    routes.push_back({
+        "Route 2: A14 Kettering (to A43)",
+        {52.374605, -0.684420},
+        {52.389625, -0.748810},
+        {},
+        4 * 60,
+        6 * 60
+    });
+
     // Route 5: A45
-    // LEDs 12-14 (NeoPixels 13-15)
+    // LEDs 9-11 (NeoPixels 10-12)
     routes.push_back({
         "Route 5: A45",
         {52.370772, -0.712938},
@@ -114,6 +103,17 @@ inline std::vector<RouteConfig> createRoutes() {
         {{52.317039, -0.719304}, {52.282573, -0.712843}},
         23 * 60,
         36 * 60
+    });
+    
+    // Route 1: A14 Eastbound (to Twywell junction)
+    // LEDs 12-14 (NeoPixels 13-15)
+    routes.push_back({
+        "Route 1: A14 Eastbound (to Twywell)",
+        {52.375899, -0.682826},
+        {52.3837205, -0.6239144},
+        {},  // no intermediates
+        4 * 60,   // Normal < 4 minutes
+        6 * 60    // Heavy > 6 minutes
     });
     
     return routes;
