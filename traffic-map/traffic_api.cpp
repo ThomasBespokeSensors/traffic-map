@@ -1,14 +1,9 @@
 #include "traffic_api.h"
 #include "secrets.h"
-#include "network_manager.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
-
-void trafficApiInit() {
-    // Currently nothing to initialize, but kept for future expansion
-}
 
 TrafficLevel checkTrafficLevel(
     const LatLng& origin,
@@ -21,7 +16,7 @@ TrafficLevel checkTrafficLevel(
     outDurationSec = -1;
     
     if (WiFi.status() != WL_CONNECTED) {
-        telnetPrintln("Error: WiFi not connected");
+        Serial.println("Error: WiFi not connected");
         return TRAFFIC_ERROR;
     }
 
@@ -32,7 +27,7 @@ TrafficLevel checkTrafficLevel(
     const char* url = "https://routes.googleapis.com/directions/v2:computeRoutes";
     
     if (!http.begin(client, url)) {
-        telnetPrintln("Error: Failed to begin HTTP connection");
+        Serial.println("Error: Failed to begin HTTP connection");
         return TRAFFIC_ERROR;
     }
 
@@ -64,8 +59,8 @@ TrafficLevel checkTrafficLevel(
     int httpCode = http.POST(body);
 
     if (httpCode != HTTP_CODE_OK) {
-        telnetPrint("HTTP Error: ");
-        telnetPrintln(String(httpCode));
+        Serial.print("HTTP Error: ");
+        Serial.println(httpCode);
         http.end();
         return TRAFFIC_ERROR;
     }
@@ -78,19 +73,19 @@ TrafficLevel checkTrafficLevel(
     DeserializationError err = deserializeJson(resp, response);
 
     if (err) {
-        telnetPrint("JSON parse error: ");
-        telnetPrintln(String(err.c_str()));
+        Serial.print("JSON parse error: ");
+        Serial.println(err.c_str());
         return TRAFFIC_ERROR;
     }
 
     if (!resp.containsKey("routes") || resp["routes"].size() == 0) {
-        telnetPrintln("Error: No routes in response");
+        Serial.println("Error: No routes in response");
         return TRAFFIC_ERROR;
     }
 
     const char* durationStr = resp["routes"][0]["duration"];
     if (!durationStr) {
-        telnetPrintln("Error: No duration in response");
+        Serial.println("Error: No duration in response");
         return TRAFFIC_ERROR;
     }
 

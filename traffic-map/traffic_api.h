@@ -1,12 +1,6 @@
 #pragma once
 
-#include <Arduino.h>
 #include "config.h"
-
-/**
- * @brief Initialize the traffic API (must be called after WiFi is connected)
- */
-void trafficApiInit();
 
 /**
  * @brief Check traffic level and get duration for a route

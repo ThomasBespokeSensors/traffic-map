@@ -1,8 +1,10 @@
+#include <WiFi.h>
 #include "config.h"
 #include "secrets.h"
-#include "network_manager.h"
 #include "led_controller.h"
 #include "traffic_api.h"
+#include "time_manager.h"
+#include "rate_limiter.h"
 
 // Global state
 std::vector<RouteConfig> routes;
@@ -18,23 +20,45 @@ String formatDuration(int seconds) {
     return String(mins) + "m " + String(secs) + "s";
 }
 
-void checkAllRoutes() {
-    telnetPrintln("\n========================================");
-    telnetPrintln("Traffic Status Update");
+void connectWiFi() {
+    Serial.print("Connecting to WiFi");
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     
-    struct tm timeinfo;
-    if (getLocalTime(&timeinfo)) {
-        char timeString[64];
-        strftime(timeString, sizeof(timeString), "%H:%M:%S", &timeinfo);
-        telnetPrint("Time: ");
-        telnetPrintln(timeString);
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+        delay(500);
+        Serial.print(".");
+        attempts++;
     }
     
-    telnetPrintln("========================================");
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("\nWiFi connected!");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
+    } else {
+        Serial.println("\nWiFi connection failed!");
+    }
+}
+
+void checkAllRoutes() {
+    Serial.println("\n========================================");
+    Serial.println("Traffic Status Update");
+    
+    char timeString[32];
+    if (getCurrentTimeString(timeString, sizeof(timeString))) {
+        Serial.print("Time: ");
+        Serial.println(timeString);
+    }
+    
+    Serial.println("========================================");
 
     for (size_t i = 0; i < routes.size(); i++) {
         const auto& route = routes[i];
         int duration;
+        
+        Serial.print("Checking: ");
+        Serial.println(route.name);
         
         TrafficLevel level = checkTrafficLevel(
             route.origin,
@@ -49,30 +73,26 @@ void checkAllRoutes() {
         ledSetRoute(i, level);
 
         // Print status
-        telnetPrintln("");
-        telnetPrint(route.name);
-        int ledStart = i * 3 + 1;
-        telnetPrint(" [LEDs ");
-        telnetPrint(String(ledStart));
-        telnetPrint("-");
-        telnetPrint(String(ledStart + 2));
-        telnetPrintln("]");
-        
-        telnetPrint("  Status: ");
-        telnetPrint(trafficLevelToString(level));
+        int ledStart = i * 3;
+        Serial.print("  LEDs: ");
+        Serial.print(ledStart);
+        Serial.print("-");
+        Serial.print(ledStart + 2);
+        Serial.print(" | Status: ");
+        Serial.print(trafficLevelToString(level));
         
         if (duration > 0) {
-            telnetPrint(" (");
-            telnetPrint(formatDuration(duration));
-            telnetPrint(")");
+            Serial.print(" (");
+            Serial.print(formatDuration(duration));
+            Serial.print(")");
         }
-        telnetPrintln("");
+        Serial.println();
 
         // Small delay between API calls
         delay(200);
     }
     
-    telnetPrintln("========================================\n");
+    Serial.println("========================================\n");
 }
 
 // ============================================
@@ -91,23 +111,16 @@ void setup() {
     ledInit();
     
     // Connect to WiFi
-    if (!networkInit()) {
-        Serial.println("Cannot proceed without WiFi. Restarting...");
+    connectWiFi();
+    
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("Cannot proceed without WiFi. Restarting in 5 seconds...");
         delay(5000);
         ESP.restart();
     }
     
     // Setup time synchronization
-    networkSetupTime();
-    
-    // Setup OTA updates
-    networkSetupOTA();
-    
-    // Setup Telnet
-    networkSetupTelnet();
-    
-    // Initialize traffic API
-    trafficApiInit();
+    timeInit();
     
     // Load routes configuration
     routes = createRoutes();
@@ -115,20 +128,20 @@ void setup() {
     // Show startup sequence
     ledStartupSequence();
     
-    telnetPrintln("\n=================================");
-    telnetPrintln("Setup complete!");
-    telnetPrintln("Active hours: " + String(ACTIVE_START_HOUR) + " AM - " + String(ACTIVE_END_HOUR) + " PM");
-    telnetPrint("Update interval: ");
-    telnetPrint(String(UPDATE_INTERVAL_MS / 60000));
-    telnetPrintln(" minutes");
-    telnetPrintln("=================================\n");
+    Serial.println("\n=================================");
+    Serial.println("Setup complete!");
+    Serial.println("Active hours: " + String(ACTIVE_START_HOUR) + " AM - " + String(ACTIVE_END_HOUR) + " PM");
+    Serial.print("Update interval: ");
+    Serial.print(UPDATE_INTERVAL_MS / 60000);
+    Serial.println(" minutes");
+    Serial.println("=================================\n");
     
     // Do first update if within active hours
     if (isWithinActiveHours()) {
         checkAllRoutes();
         recordUpdate();
     } else {
-        telnetPrintln("Outside active hours - LEDs off");
+        Serial.println("Outside active hours - LEDs off");
         ledClear();
     }
 }
@@ -138,16 +151,11 @@ void setup() {
 // ============================================
 
 void loop() {
-    // Handle network tasks (OTA, Telnet) - MUST BE FIRST
-    networkHandle();
-    
     // Check if we're in active hours
     if (!isWithinActiveHours()) {
         ledClear();
-        unsigned long sleepTime = getTimeUntilActiveHours();
-        // Sleep but wake periodically to handle OTA
-        unsigned long sleepChunk = min(sleepTime, 60000UL);  // Max 1 minute chunks
-        delay(sleepChunk);
+        // Sleep but check hourly in case time was wrong
+        delay(60UL * 60UL * 1000UL);  // 1 hour
         return;
     }
     
