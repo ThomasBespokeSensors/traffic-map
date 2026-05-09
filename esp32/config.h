@@ -13,7 +13,7 @@
 // ============================================
 // Timing Configuration
 // ============================================
-#define UPDATE_INTERVAL_MS      (10UL * 60UL * 1000UL)   // 10 minutes
+#define UPDATE_INTERVAL_MS      (30UL * 60UL * 1000UL)   // 30 minutes
 #define MIN_UPDATE_INTERVAL_MS  (2UL * 60UL * 1000UL)    // 2 minutes minimum
 #define MAX_UPDATES_PER_HOUR    12
 
