@@ -17,7 +17,7 @@ const Color COLOR_OFF       = {0, 0, 0};        // Off
 
 static Color getColorForLevel(TrafficLevel level) {
     switch (level) {
-        case TRAFFIC_NORMAL:   return COLOR_RED;
+        case TRAFFIC_NORMAL:   return COLOR_GREEN;
         case TRAFFIC_MODERATE: return COLOR_YELLOW;
         case TRAFFIC_HEAVY:    return COLOR_RED;
         case TRAFFIC_ERROR:    return COLOR_BLUE;
