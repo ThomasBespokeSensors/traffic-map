@@ -5,6 +5,8 @@
 #include "traffic_api.h"
 #include "time_manager.h"
 #include "rate_limiter.h"
+#include "logger.h"
+#include "ota_updater.h"
 
 // Global state
 std::vector<RouteConfig> routes;
@@ -21,44 +23,44 @@ String formatDuration(int seconds) {
 }
 
 void connectWiFi() {
-    Serial.print("Connecting to WiFi");
+    logPrint("Connecting to WiFi");
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     
     int attempts = 0;
     while (WiFi.status() != WL_CONNECTED && attempts < 30) {
         delay(500);
-        Serial.print(".");
+        logPrint(".");
         attempts++;
     }
     
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\nWiFi connected!");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
+        logPrintln("\nWiFi connected!");
+        logPrint("IP address: ");
+        logPrintln(WiFi.localIP());
     } else {
-        Serial.println("\nWiFi connection failed!");
+        logPrintln("\nWiFi connection failed!");
     }
 }
 
 void checkAllRoutes() {
-    Serial.println("\n========================================");
-    Serial.println("Traffic Status Update");
+    logPrintln("\n========================================");
+    logPrintln("Traffic Status Update");
     
     char timeString[32];
     if (getCurrentTimeString(timeString, sizeof(timeString))) {
-        Serial.print("Time: ");
-        Serial.println(timeString);
+        logPrint("Time: ");
+        logPrintln(timeString);
     }
     
-    Serial.println("========================================");
+    logPrintln("========================================");
 
     for (size_t i = 0; i < routes.size(); i++) {
         const auto& route = routes[i];
         int duration;
         
-        Serial.print("Checking: ");
-        Serial.println(route.name);
+        logPrint("Checking: ");
+        logPrintln(route.name);
         
         TrafficLevel level = checkTrafficLevel(
             route.origin,
@@ -74,25 +76,25 @@ void checkAllRoutes() {
 
         // Print status
         int ledStart = i * 3;
-        Serial.print("  LEDs: ");
-        Serial.print(ledStart);
-        Serial.print("-");
-        Serial.print(ledStart + 2);
-        Serial.print(" | Status: ");
-        Serial.print(trafficLevelToString(level));
+        logPrint("  LEDs: ");
+        logPrint(ledStart);
+        logPrint("-");
+        logPrint(ledStart + 2);
+        logPrint(" | Status: ");
+        logPrint(trafficLevelToString(level));
         
         if (duration > 0) {
-            Serial.print(" (");
-            Serial.print(formatDuration(duration));
-            Serial.print(")");
+            logPrint(" (");
+            logPrint(formatDuration(duration));
+            logPrint(")");
         }
-        Serial.println();
+        logPrintln();
 
         // Small delay between API calls
         delay(200);
     }
     
-    Serial.println("========================================\n");
+    logPrintln("========================================\n");
 }
 
 // ============================================
@@ -102,10 +104,12 @@ void checkAllRoutes() {
 void setup() {
     Serial.begin(115200);
     delay(1000);
+
+    loggerInit();
     
-    Serial.println("\n\n=================================");
-    Serial.println("Traffic Map Display Starting...");
-    Serial.println("=================================\n");
+    logPrintln("\n\n=================================");
+    logPrintln("Traffic Map Display Starting...");
+    logPrintln("=================================\n");
     
     // Initialize LED strip
     ledInit();
@@ -114,7 +118,7 @@ void setup() {
     connectWiFi();
     
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("Cannot proceed without WiFi. Restarting in 5 seconds...");
+        logPrintln("Cannot proceed without WiFi. Restarting in 5 seconds...");
         delay(5000);
         ESP.restart();
     }
@@ -128,20 +132,20 @@ void setup() {
     // Show startup sequence
     ledStartupSequence();
     
-    Serial.println("\n=================================");
-    Serial.println("Setup complete!");
-    Serial.println("Active hours: " + String(ACTIVE_START_HOUR) + " AM - " + String(ACTIVE_END_HOUR) + " PM");
-    Serial.print("Update interval: ");
-    Serial.print(UPDATE_INTERVAL_MS / 60000);
-    Serial.println(" minutes");
-    Serial.println("=================================\n");
+    logPrintln("\n=================================");
+    logPrintln("Setup complete!");
+    logPrintln("Active hours: " + String(ACTIVE_START_HOUR) + " AM - " + String(ACTIVE_END_HOUR) + " PM");
+    logPrint("Update interval: ");
+    logPrint(UPDATE_INTERVAL_MS / 60000);
+    logPrintln(" minutes");
+    logPrintln("=================================\n");
     
     // Do first update if within active hours
     if (isWithinActiveHours()) {
         checkAllRoutes();
         recordUpdate();
     } else {
-        Serial.println("Outside active hours - LEDs off");
+        logPrintln("Outside active hours - LEDs off");
         ledClear();
     }
 }
@@ -151,6 +155,25 @@ void setup() {
 // ============================================
 
 void loop() {
+    // Check for OTA updates once per day at startup or every 24 hours
+    static unsigned long lastOTACheck = 0;
+    static bool firstRun = true;
+    
+    unsigned long now = millis();
+    
+    // Check on first run (after 30 seconds to ensure stable connection)
+    if (firstRun && now > 30000) {
+        firstRun = false;
+        checkForUpdate();
+        lastOTACheck = now;
+    }
+    
+    // Check every 24 hours
+    if (now - lastOTACheck >= 24UL * 60UL * 60UL * 1000UL) {
+        lastOTACheck = now;
+        checkForUpdate();
+    }
+
     // Check if we're in active hours
     if (!isWithinActiveHours()) {
         ledClear();

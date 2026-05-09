@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from flask import Flask, request, render_template_string, send_from_directory, jsonify
+from flask import Flask, request, render_template_string, send_from_directory, jsonify, after_this_request
 from datetime import datetime
 import os
 
@@ -197,21 +197,35 @@ def download_firmware(filename):
 
 @app.route('/firmware/latest')
 def latest_firmware():
-    """Get the most recent firmware file"""
+    """Get the most recent firmware file and delete after serving"""
+
     if not os.path.exists(FIRMWARE_FOLDER):
         return jsonify({'error': 'No firmware available'}), 404
-    
+
     files = [f for f in os.listdir(FIRMWARE_FOLDER) if f.endswith('.bin')]
+
     if not files:
         return jsonify({'error': 'No firmware available'}), 404
-    
-    # Get most recent file
+
+    # Get newest firmware
     latest = max(
         [os.path.join(FIRMWARE_FOLDER, f) for f in files],
         key=os.path.getmtime
     )
-    
-    return send_from_directory(FIRMWARE_FOLDER, os.path.basename(latest))
+
+    filename = os.path.basename(latest)
+
+    @after_this_request
+    def remove_file(response):
+        try:
+            os.remove(latest)
+            print(f"Deleted firmware after OTA: {filename}")
+        except Exception as e:
+            print(f"Could not delete firmware: {e}")
+
+        return response
+
+    return send_from_directory(FIRMWARE_FOLDER, filename)
 
 # ============================================
 # API Status Endpoint

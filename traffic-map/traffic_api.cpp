@@ -4,6 +4,8 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
+#include "logger.h"
+
 
 TrafficLevel checkTrafficLevel(
     const LatLng& origin,
@@ -16,7 +18,7 @@ TrafficLevel checkTrafficLevel(
     outDurationSec = -1;
     
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("Error: WiFi not connected");
+        logPrintln("Error: WiFi not connected");
         return TRAFFIC_ERROR;
     }
 
@@ -27,7 +29,7 @@ TrafficLevel checkTrafficLevel(
     const char* url = "https://routes.googleapis.com/directions/v2:computeRoutes";
     
     if (!http.begin(client, url)) {
-        Serial.println("Error: Failed to begin HTTP connection");
+        logPrintln("Error: Failed to begin HTTP connection");
         return TRAFFIC_ERROR;
     }
 
@@ -59,8 +61,8 @@ TrafficLevel checkTrafficLevel(
     int httpCode = http.POST(body);
 
     if (httpCode != HTTP_CODE_OK) {
-        Serial.print("HTTP Error: ");
-        Serial.println(httpCode);
+        logPrint("HTTP Error: ");
+        logPrintln(httpCode);
         http.end();
         return TRAFFIC_ERROR;
     }
@@ -73,19 +75,19 @@ TrafficLevel checkTrafficLevel(
     DeserializationError err = deserializeJson(resp, response);
 
     if (err) {
-        Serial.print("JSON parse error: ");
-        Serial.println(err.c_str());
+        logPrint("JSON parse error: ");
+        logPrintln(err.c_str());
         return TRAFFIC_ERROR;
     }
 
     if (!resp.containsKey("routes") || resp["routes"].size() == 0) {
-        Serial.println("Error: No routes in response");
+        logPrintln("Error: No routes in response");
         return TRAFFIC_ERROR;
     }
 
     const char* durationStr = resp["routes"][0]["duration"];
     if (!durationStr) {
-        Serial.println("Error: No duration in response");
+        logPrintln("Error: No duration in response");
         return TRAFFIC_ERROR;
     }
 

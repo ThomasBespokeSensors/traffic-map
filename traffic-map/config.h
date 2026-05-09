@@ -29,6 +29,14 @@
 #define DAYLIGHT_OFFSET_SEC 3600        // UK uses BST (GMT+1) in summer
 
 // ============================================
+// Raspberry Pi Server Configuration
+// ============================================
+#define RPI_SERVER_IP   "192.168.1.185"  // Your Raspberry Pi IP
+#define RPI_SERVER_PORT 5000
+#define FIRMWARE_VERSION "1.0.0"
+#define FIRMWARE_FILENAME "traffic-map.ino.bin"
+
+// ============================================
 // Data Structures
 // ============================================
 struct LatLng {

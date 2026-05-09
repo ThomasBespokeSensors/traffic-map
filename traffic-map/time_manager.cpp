@@ -1,33 +1,35 @@
 #include "time_manager.h"
 #include "config.h"
 #include <time.h>
+#include "logger.h"
+
 
 void timeInit() {
-    Serial.println("Setting up time synchronization...");
+    logPrintln("Setting up time synchronization...");
     configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
     
     struct tm timeinfo;
     int retries = 0;
     while (!getLocalTime(&timeinfo) && retries < 10) {
-        Serial.print(".");
+        logPrint(".");
         delay(1000);
         retries++;
     }
     
     if (retries < 10) {
-        Serial.println("\nTime synchronized!");
+        logPrintln("\nTime synchronized!");
         char timeString[64];
         strftime(timeString, sizeof(timeString), "Current time: %A, %B %d %Y %H:%M:%S", &timeinfo);
-        Serial.println(timeString);
+        logPrintln(timeString);
     } else {
-        Serial.println("\nFailed to get time - will retry later");
+        logPrintln("\nFailed to get time - will retry later");
     }
 }
 
 bool isWithinActiveHours() {
     struct tm timeinfo;
     if (!getLocalTime(&timeinfo)) {
-        Serial.println("Warning: Failed to get time, assuming active hours");
+        logPrintln("Warning: Failed to get time, assuming active hours");
         return true;
     }
     
@@ -48,9 +50,9 @@ unsigned long getTimeUntilActiveHours() {
     if (currentHour >= ACTIVE_END_HOUR) {
         int hoursUntil = (24 - currentHour) + ACTIVE_START_HOUR;
         int minutesUntil = hoursUntil * 60 - currentMinute;
-        Serial.print("Sleeping until 7 AM (");
-        Serial.print(minutesUntil);
-        Serial.println(" minutes)");
+        logPrint("Sleeping until 7 AM (");
+        logPrint(minutesUntil);
+        logPrintln(" minutes)");
         return minutesUntil * 60UL * 1000UL;
     }
     
@@ -58,9 +60,9 @@ unsigned long getTimeUntilActiveHours() {
     if (currentHour < ACTIVE_START_HOUR) {
         int hoursUntil = ACTIVE_START_HOUR - currentHour;
         int minutesUntil = hoursUntil * 60 - currentMinute;
-        Serial.print("Sleeping until 7 AM (");
-        Serial.print(minutesUntil);
-        Serial.println(" minutes)");
+        logPrint("Sleeping until 7 AM (");
+        logPrint(minutesUntil);
+        logPrintln(" minutes)");
         return minutesUntil * 60UL * 1000UL;
     }
     

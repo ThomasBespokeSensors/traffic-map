@@ -1,4 +1,6 @@
 #include "led_controller.h"
+#include "logger.h"
+
 
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_RGB + NEO_KHZ800);
 
@@ -15,7 +17,7 @@ const Color COLOR_OFF       = {0, 0, 0};        // Off
 
 static Color getColorForLevel(TrafficLevel level) {
     switch (level) {
-        case TRAFFIC_NORMAL:   return COLOR_GREEN;
+        case TRAFFIC_NORMAL:   return COLOR_RED;
         case TRAFFIC_MODERATE: return COLOR_YELLOW;
         case TRAFFIC_HEAVY:    return COLOR_RED;
         case TRAFFIC_ERROR:    return COLOR_BLUE;
@@ -28,12 +30,12 @@ void ledInit() {
     strip.setBrightness(LED_BRIGHTNESS);
     strip.clear();
     strip.show();
-    Serial.println("LED strip initialized");
+    logPrintln("LED strip initialized");
 }
 
 void ledSetRoute(int routeIndex, TrafficLevel level) {
     if (routeIndex < 0 || routeIndex >= 5) {
-        Serial.println("Error: Invalid route index");
+        logPrintln("Error: Invalid route index");
         return;
     }
     
@@ -52,7 +54,7 @@ void ledClear() {
 }
 
 void ledStartupSequence() {
-    Serial.println("Running LED startup sequence...");
+    logPrintln("Running LED startup sequence...");
     
     // Light up each route in blue sequentially
     for (int route = 0; route < 5; route++) {
@@ -79,10 +81,10 @@ void ledStartupSequence() {
         delay(200);
     }
     
-    Serial.println("LED mapping:");
-    Serial.println("  Route 1 (A14 Westbound)      -> NeoPixels 1-3   (indices 0-2)");
-    Serial.println("  Route 2 (A43)                -> NeoPixels 4-6   (indices 3-5)");
-    Serial.println("  Route 3 (A14 Kettering)      -> NeoPixels 7-9   (indices 6-8)");
-    Serial.println("  Route 4 (A45)                -> NeoPixels 10-12 (indices 9-11)");
-    Serial.println("  Route 5 (A14 Eastbound)      -> NeoPixels 13-15 (indices 12-14)");
+    logPrintln("LED mapping:");
+    logPrintln("  Route 1 (A14 Westbound)      -> NeoPixels 1-3   (indices 0-2)");
+    logPrintln("  Route 2 (A43)                -> NeoPixels 4-6   (indices 3-5)");
+    logPrintln("  Route 3 (A14 Kettering)      -> NeoPixels 7-9   (indices 6-8)");
+    logPrintln("  Route 4 (A45)                -> NeoPixels 10-12 (indices 9-11)");
+    logPrintln("  Route 5 (A14 Eastbound)      -> NeoPixels 13-15 (indices 12-14)");
 }
