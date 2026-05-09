@@ -2,6 +2,8 @@
 from flask import Flask, request, render_template_string, send_from_directory, jsonify
 from datetime import datetime
 import os
+import threading
+import time
 
 app = Flask(__name__)
 
@@ -193,46 +195,24 @@ def index():
 @app.route('/firmware/<filename>')
 def download_firmware(filename):
 
-    response = send_from_directory(FIRMWARE_FOLDER, filename)
-
     fullpath = os.path.join(FIRMWARE_FOLDER, filename)
 
-    def cleanup():
+    response = send_from_directory(FIRMWARE_FOLDER, filename)
+
+    def delayed_delete():
+
+        print(f"Delete thread started for {filename}", flush=True)
+
+        time.sleep(10)
+
         try:
             os.remove(fullpath)
             print(f"Deleted firmware: {filename}", flush=True)
+
         except Exception as e:
             print(f"Delete failed: {e}", flush=True)
 
-    response.call_on_close(cleanup)
-
-    return response
-
-@app.route('/firmware/latest')
-def latest_firmware():
-
-    files = [f for f in os.listdir(FIRMWARE_FOLDER) if f.endswith('.bin')]
-
-    if not files:
-        return jsonify({'error': 'No firmware available'}), 404
-
-    latest = max(
-        [os.path.join(FIRMWARE_FOLDER, f) for f in files],
-        key=os.path.getmtime
-    )
-
-    filename = os.path.basename(latest)
-
-    response = send_from_directory(FIRMWARE_FOLDER, filename)
-
-    def cleanup():
-        try:
-            os.remove(latest)
-            print(f"Deleted firmware: {filename}")
-        except Exception as e:
-            print(f"Delete failed: {e}")
-
-    response.call_on_close(cleanup)
+    threading.Thread(target=delayed_delete, daemon=True).start()
 
     return response
 
