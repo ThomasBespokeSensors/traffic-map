@@ -192,8 +192,21 @@ def index():
 
 @app.route('/firmware/<filename>')
 def download_firmware(filename):
-    """Serve firmware file for ESP32 OTA"""
-    return send_from_directory(FIRMWARE_FOLDER, filename)
+
+    response = send_from_directory(FIRMWARE_FOLDER, filename)
+
+    fullpath = os.path.join(FIRMWARE_FOLDER, filename)
+
+    def cleanup():
+        try:
+            os.remove(fullpath)
+            print(f"Deleted firmware: {filename}", flush=True)
+        except Exception as e:
+            print(f"Delete failed: {e}", flush=True)
+
+    response.call_on_close(cleanup)
+
+    return response
 
 @app.route('/firmware/latest')
 def latest_firmware():
